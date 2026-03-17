@@ -1,0 +1,321 @@
+{
+  "_metadata": {
+    "title": "Gestor Pro — VeriFactu Readiness Rules",
+    "version": "2.0",
+    "last_updated": "2025-03-17",
+    "framing": "IMPORTANT: These are invoice readiness checks, NOT a certified VeriFactu compliance system. VeriFactu compliance is a software system certification (RD 1007/2023), not just invoice field validation. This tool checks whether invoices meet the prerequisites for VeriFactu-ready systems.",
+    "legal_sources": [
+      {
+        "ref": "RD-1007/2023",
+        "title": "Real Decreto 1007/2023, de 5 de diciembre — Reglamento RRSIF",
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2023-24840",
+        "relevance": "Core regulation defining SIF requirements: integrity, traceability, inalterability, hash chaining, event log"
+      },
+      {
+        "ref": "OM-HAC/1177/2024",
+        "title": "Orden HAC/1177/2024, de 17 de octubre — Especificaciones técnicas",
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2024-22138",
+        "relevance": "Technical specs for registration records, hash algorithm, e-signature, QR code format (Art. 20-21), VERI*FACTU submission specs"
+      },
+      {
+        "ref": "RD-1619/2012",
+        "title": "Real Decreto 1619/2012 — Reglamento de Obligaciones de Facturación (ROF)",
+        "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2012-14696",
+        "relevance": "Base invoicing obligations: mandatory fields (Art. 6), invoice numbering (Art. 8). VeriFactu builds on top of these."
+      },
+      {
+        "ref": "RDL-15/2025",
+        "title": "Real Decreto-ley 15/2025, de 2 de diciembre — Ampliación de plazos",
+        "relevance": "Changed mandatory dates to 2027"
+      },
+      {
+        "ref": "FAQs-AEAT-DEV-v1.3",
+        "title": "Aclaraciones a dudas de los desarrolladores v1.3 (04/12/2025)",
+        "url": "https://sede.agenciatributaria.gob.es/static_files/AEAT_Desarrolladores/EEDD/IVA/VERI-FACTU/FAQs-Desarrolladores.pdf",
+        "relevance": "Official AEAT developer FAQ: SIF identification, hash chaining, numbering rules, event log, ImporteTotal definition"
+      }
+    ],
+    "mandatory_dates": {
+      "software_developers_must_offer_adapted_products": "2025-07-29",
+      "verifactu_production_services_live_at_aeat": "2025-04-23",
+      "mandatory_for_impuesto_sociedades_companies": "2027-01-01",
+      "mandatory_for_autonomos_and_rest": "2027-07-01",
+      "source": "RDL 15/2025 disposicion final primera + FAQs-AEAT-DEV-v1.3 section 1"
+    },
+    "what_this_tool_checks": "Layer 1: ROF field completeness (RD 1619/2012 Art. 6). Layer 2: Arithmetic consistency (IVA, IRPF, totals). Layer 3: Numbering integrity. Layer 4: VeriFactu system-level requirements shown as informational context. Does NOT check: hash chain integrity (requires full sequential invoice history), electronic signature validity (requires certificate infrastructure), real-time AEAT submission (requires certified SIF), event log compliance (system-level not invoice-level)."
+  },
+
+  "rule_categories": {
+    "ROF_mandatory_fields": "Fields required by RD 1619/2012 Art. 6 for all facturas completas. Legal minimum — VeriFactu builds on top.",
+    "calculation_consistency": "Mathematical coherence checks — IVA cuota, IRPF and total must be arithmetically correct. SIF validates these before generating registration record.",
+    "numbering_integrity": "Invoice numbering rules. RD 1619/2012 Art. 8 requires correlative sequential series. AEAT FAQ section 6 explicitly prohibits duplicate numbering.",
+    "verifactu_system_level": "System-level VeriFactu requirements (hash, signature, QR, event log). Cannot be fully verified from invoice content alone — shown as informational context."
+  },
+
+  "rules": [
+    {
+      "id": "ROF-001",
+      "category": "ROF_mandatory_fields",
+      "legal_basis": "RD 1619/2012, Art. 6.1.b",
+      "field": "numero_factura",
+      "field_verifactu_name": "NumSerieFactura",
+      "title": "Número de factura obligatorio",
+      "description": "Toda factura completa debe tener un número correlativo dentro de una o varias series. El número identifica la factura de forma unívoca.",
+      "severity": "error",
+      "check_logic": "Present and non-empty string",
+      "fix": "Asignar número único y correlativo dentro de la serie. Ejemplos válidos: 2025-001, FAC-2025-001, A-001"
+    },
+    {
+      "id": "ROF-002",
+      "category": "ROF_mandatory_fields",
+      "legal_basis": "RD 1619/2012, Art. 6.1.a",
+      "field": "fecha_emision",
+      "field_verifactu_name": "FechaExpedicionFacturaRegistro",
+      "title": "Fecha de expedición obligatoria",
+      "description": "La fecha de expedición es obligatoria. El formato en el registro VeriFactu (OM HAC/1177/2024 Anexo) es DD-MM-YYYY.",
+      "severity": "error",
+      "acceptable_formats": ["DD-MM-YYYY", "YYYY-MM-DD", "DD/MM/YYYY"],
+      "canonical_format_for_registro": "DD-MM-YYYY",
+      "check_logic": "Present and parseable as a date",
+      "fix": "Añadir la fecha de expedición. Formato canónico para registro VeriFactu: DD-MM-YYYY"
+    },
+    {
+      "id": "ROF-003",
+      "category": "ROF_mandatory_fields",
+      "legal_basis": "RD 1619/2012, Art. 6.1.d",
+      "field": "proveedor_nombre",
+      "field_verifactu_name": "NombreRazonEmisor",
+      "title": "Nombre o razón social del emisor obligatorio",
+      "description": "El nombre o razón social del obligado a expedir la factura (OEF) es campo obligatorio en toda factura completa.",
+      "severity": "error",
+      "check_logic": "Present, non-empty string, minimum 2 characters",
+      "fix": "Incluir el nombre completo o razón social del emisor de la factura"
+    },
+    {
+      "id": "ROF-004",
+      "category": "ROF_mandatory_fields",
+      "legal_basis": "RD 1619/2012, Art. 6.1.d + RD 1007/2023 (IDEmisorFactura is key SIF identifier)",
+      "field": "proveedor_nif",
+      "field_verifactu_name": "IDEmisorFactura",
+      "title": "NIF del emisor obligatorio y con formato válido",
+      "description": "El NIF del emisor es obligatorio y debe tener formato español válido. En el registro VeriFactu es el IDEmisorFactura — campo crítico que junto con NumSerieFactura y FechaExpedicion identifica unívocamente cada factura.",
+      "severity": "error",
+      "regex_patterns": {
+        "nif_persona_fisica": "^\\d{8}[A-Z]$",
+        "cif_persona_juridica": "^[ABCDEFGHJKLMNPQRSUVW]\\d{7}[A-J0-9]$",
+        "nie": "^[XYZ]\\d{7}[A-Z]$"
+      },
+      "check_logic": "Present and matches one of the NIF/CIF/NIE regex patterns",
+      "fix": "Formato NIF persona física: 8 dígitos + letra (ej: 12345678A). CIF empresa: letra + 7 dígitos + letra/dígito (ej: B12345678). NIE: X/Y/Z + 7 dígitos + letra"
+    },
+    {
+      "id": "ROF-005",
+      "category": "ROF_mandatory_fields",
+      "legal_basis": "RD 1619/2012, Art. 6.1.f",
+      "field": "concepto",
+      "field_verifactu_name": "DescripcionOperacion",
+      "title": "Descripción de la operación obligatoria",
+      "description": "Debe constar la descripción de las operaciones (bienes entregados o servicios prestados). Campo DescripcionOperacion en el registro VeriFactu.",
+      "severity": "error",
+      "check_logic": "Present, non-empty string, minimum 5 characters",
+      "fix": "Añadir descripción clara del servicio prestado o bien entregado (mínimo 5 caracteres)"
+    },
+    {
+      "id": "ROF-006",
+      "category": "ROF_mandatory_fields",
+      "legal_basis": "RD 1619/2012, Art. 6.1.e",
+      "field": "cliente_nif",
+      "field_verifactu_name": "NIF within Destinatarios block",
+      "title": "NIF del destinatario requerido en B2B y facturas > 3.000€",
+      "description": "En facturas completas donde el destinatario es empresario o profesional, el NIF es obligatorio. También obligatorio cuando el importe total supera 3.000€ IVA incluido.",
+      "severity": "warning",
+      "threshold_eur": 3000,
+      "check_logic": "Warning if: total > 3000 AND cliente_nif is null/empty",
+      "fix": "Incluir NIF/CIF del cliente. Obligatorio para facturas B2B y para importes superiores a 3.000€ (IVA incluido)"
+    },
+    {
+      "id": "ROF-007",
+      "category": "calculation_consistency",
+      "legal_basis": "RD 1619/2012, Art. 6.1.g-h + Ley 37/1992 IVA",
+      "field": "iva_porcentaje",
+      "field_verifactu_name": "TipoImpositivo within DetalleIVA",
+      "title": "Tipo de IVA debe ser uno de los tipos legalmente vigentes",
+      "description": "El tipo de IVA debe ser uno de los tipos vigentes en España según Ley 37/1992: 0% (exento o no sujeto), 4% (superreducido), 10% (reducido), 21% (general).",
+      "severity": "error",
+      "valid_rates_pct": [0, 4, 10, 21],
+      "check_logic": "Value must be one of [0, 4, 10, 21]",
+      "fix": "Tipos IVA vigentes: 0% (exento), 4% (superreducido: pan, leche, libros, medicamentos), 10% (reducido: alimentos generales, transporte, hostelería), 21% (general)"
+    },
+    {
+      "id": "ROF-008",
+      "category": "calculation_consistency",
+      "legal_basis": "RD 1619/2012, Art. 6.1.g",
+      "field": "iva_cuota",
+      "field_verifactu_name": "CuotaRepercutida within DetalleIVA",
+      "title": "Cuota de IVA debe ser coherente con base × tipo",
+      "description": "La cuota de IVA repercutida debe coincidir con base_imponible × (iva_porcentaje / 100). Tolerancia ±0.02€ por redondeo. El SIF valida esta coherencia antes de generar el registro de facturación.",
+      "severity": "error",
+      "tolerance_eur": 0.02,
+      "formula": "iva_cuota = round(base_imponible × iva_porcentaje / 100, 2)",
+      "check_logic": "abs(iva_cuota - round(base_imponible * iva_porcentaje / 100, 2)) <= 0.02",
+      "fix": "Recalcular: iva_cuota = round(base_imponible × iva_porcentaje / 100, 2)"
+    },
+    {
+      "id": "ROF-009",
+      "category": "calculation_consistency",
+      "legal_basis": "RD 1619/2012, Art. 6.1.i + FAQs-AEAT-DEV-v1.3 section 20",
+      "field": "total",
+      "field_verifactu_name": "ImporteTotal",
+      "title": "Importe total debe ser aritméticamente coherente",
+      "description": "El importe total debe ser igual a base_imponible + iva_cuota - irpf_retencion. Según AEAT FAQ section 20, ImporteTotal en el registro VeriFactu = base imponible + cuotas IVA repercutidas - retenciones IRPF + otros conceptos.",
+      "severity": "error",
+      "tolerance_eur": 0.02,
+      "formula": "total = base_imponible + iva_cuota - irpf_retencion",
+      "check_logic": "abs(total - (base_imponible + iva_cuota - irpf_retencion)) <= 0.02",
+      "fix": "Recalcular: total = base_imponible + iva_cuota - irpf_retencion",
+      "aeat_faq_ref": "FAQs-AEAT-DEV-v1.3 section 20"
+    },
+    {
+      "id": "ROF-010",
+      "category": "calculation_consistency",
+      "legal_basis": "Ley 35/2006 IRPF + RD 439/2007",
+      "field": "irpf_porcentaje",
+      "field_verifactu_name": "TipoRetencion if applicable",
+      "title": "Tipo de IRPF debe ser válido si se aplica retención",
+      "description": "Si se aplica retención de IRPF (actividades profesionales según Ley 35/2006), el tipo debe ser uno de los vigentes: 7% (inicio actividad primeros 3 años), 15% (tipo general profesionales), 19% (actividades ganaderas y forestales específicas). Si no aplica retención, debe ser 0.",
+      "severity": "warning",
+      "valid_rates_pct": [0, 7, 15, 19],
+      "check_logic": "If irpf_porcentaje is present and non-zero, must be in [7, 15, 19]",
+      "fix": "Tipos IRPF válidos: 0% (no aplica), 7% (inicio actividad), 15% (profesionales general), 19% (actividades específicas forestales/ganaderas)"
+    },
+    {
+      "id": "NUM-001",
+      "category": "numbering_integrity",
+      "legal_basis": "RD 1619/2012, Art. 8.1 + FAQs-AEAT-DEV-v1.3 section 6",
+      "field": "numero_factura",
+      "field_verifactu_name": "NumSerieFactura",
+      "title": "Numeración correlativa sin duplicados",
+      "description": "Las facturas deben numerarse correlativamente. La AEAT prohíbe explícitamente la numeración duplicada de un registro (FAQ section 6). El SIF debe impedir crear dos registros con el mismo IDEmisorFactura + NumSerieFactura + FechaExpedicion.",
+      "severity": "error",
+      "check_logic": "No duplicate NumSerieFactura in ledger for same issuer",
+      "fix": "Verificar que no existe otra factura con el mismo número de serie. La numeración debe ser correlativa y sin huecos.",
+      "aeat_faq_ref": "FAQs-AEAT-DEV-v1.3 section 6: Prohibición de numeración duplicada"
+    },
+    {
+      "id": "NUM-002",
+      "category": "numbering_integrity",
+      "legal_basis": "RD 1619/2012, Art. 8.1",
+      "field": "numero_factura",
+      "title": "Formato de número de factura reconocible",
+      "description": "El número debe pertenecer a una serie identificable, con al menos una secuencia numérica. Puede tener prefijo alfanumérico de serie.",
+      "severity": "warning",
+      "regex": "^[A-Za-z0-9/_-]{1,20}$",
+      "check_logic": "Contains at least one digit and matches safe character set",
+      "fix": "Usar formato con serie y número secuencial. Ejemplos: 2025-001, FAC-2025-001, A/2025/001"
+    },
+    {
+      "id": "VF-SYS-001",
+      "category": "verifactu_system_level",
+      "legal_basis": "OM HAC/1177/2024, Art. 20-21 + RD 1619/2012 Art. 6.5 as modified",
+      "field": "qr_code_present",
+      "field_verifactu_name": "CodigoQR on printed/electronic invoice",
+      "title": "Código QR tributario (informativo — responsabilidad del SIF)",
+      "description": "Las facturas de SIF adaptados deben incluir un código QR tributario con formato definido en OM HAC/1177/2024 Art. 21. El QR contiene IDEmisorFactura, NumSerieFactura, FechaExpedicion, TipoFactura, CuotaTotal, ImporteTotal. Permite verificación en sede AEAT. Para facturas electrónicas puede sustituirse por elemento equivalente.",
+      "severity": "info",
+      "check_logic": "Flag as informational. Presence of QR detected from parsed invoice metadata if available.",
+      "qr_url_base": "https://www2.agenciatributaria.gob.es/wlpl/AVAC-CALC/VerifactuVerificacion",
+      "fix": "El QR es generado automáticamente por el SIF certificado. Su ausencia indica que el software de facturación no está adaptado al RD 1007/2023 — no es un campo que el usuario complete manualmente."
+    },
+    {
+      "id": "VF-SYS-002",
+      "category": "verifactu_system_level",
+      "legal_basis": "RD 1007/2023 Art. 8.1.a + OM HAC/1177/2024 Art. 6 and Art. 13",
+      "field": "hash_encadenamiento",
+      "field_verifactu_name": "Huella (SHA-256 hash in RegistroFacturacion)",
+      "title": "Huella hash encadenada (informativo — responsabilidad del SIF)",
+      "description": "Cada registro de facturación debe incluir una huella SHA-256 calculada sobre campos del registro actual más la huella del registro anterior, creando una cadena inalterable. Esta verificación requiere acceso al historial completo de registros del SIF.",
+      "severity": "info",
+      "hash_algorithm": "SHA-256",
+      "fields_used_in_hash": ["IDEmisorFactura", "NumSerieFactura", "FechaExpedicionFacturaRegistro", "TipoFactura", "CuotaTotal", "ImporteTotal", "Huella_RegistroAnterior"],
+      "check_logic": "Cannot verify from single invoice. Informational only.",
+      "fix": "El encadenamiento hash es responsabilidad del SIF. Verificar que el software de facturación está certificado conforme a RD 1007/2023.",
+      "aeat_faq_ref": "FAQs-AEAT-DEV-v1.3 section 15: Chequeo automático del correcto encadenamiento"
+    },
+    {
+      "id": "VF-SYS-003",
+      "category": "verifactu_system_level",
+      "legal_basis": "OM HAC/1177/2024, Art. 14",
+      "field": "firma_electronica",
+      "field_verifactu_name": "Signature (XMLDSig) on RegistroFacturacion",
+      "title": "Firma electrónica del registro (informativo — solo en modo NO VERI*FACTU)",
+      "description": "En modalidad NO VERI*FACTU: cada registro de facturación requiere firma electrónica cualificada. En modalidad VERI*FACTU (remisión automática a AEAT): la firma aplica a los lotes de envío, no a cada registro individual. Requiere certificado electrónico cualificado válido instalado en el SIF.",
+      "severity": "info",
+      "check_logic": "System-level. Cannot check from invoice content.",
+      "fix": "La firma electrónica la gestiona automáticamente el SIF. Asegúrese de tener un certificado electrónico cualificado válido (ej: FNMT) instalado en el software de facturación."
+    },
+    {
+      "id": "VF-SYS-004",
+      "category": "verifactu_system_level",
+      "legal_basis": "RD 1007/2023 Art. 8.3 + OM HAC/1177/2024 Art. 9",
+      "field": "registro_eventos",
+      "field_verifactu_name": "RegistroEvento",
+      "title": "Registro de eventos del SIF (informativo — solo en modo NO VERI*FACTU)",
+      "description": "Los SIF en modalidad NO VERI*FACTU deben mantener un registro inalterable de eventos (accesos, cambios de configuración, cambios de versión). Debe conservarse hasta prescripción de obligaciones tributarias. En modalidad VERI*FACTU no es obligatorio.",
+      "severity": "info",
+      "check_logic": "System-level. Cannot verify from invoice content.",
+      "fix": "Verificar con su proveedor que el SIF mantiene registro de eventos conforme a OM HAC/1177/2024 Art. 9."
+    },
+    {
+      "id": "VF-SYS-005",
+      "category": "verifactu_system_level",
+      "legal_basis": "RD 1007/2023, Art. 3 + OM HAC/1177/2024 Art. 15",
+      "field": "declaracion_responsable_sif",
+      "title": "Declaración responsable del fabricante del SIF",
+      "description": "Todo SIF adaptado al RD 1007/2023 debe estar acompañado de una declaración responsable de su fabricante que certifique el cumplimiento de requisitos. Sin esta declaración el SIF no puede considerarse adaptado legalmente.",
+      "severity": "info",
+      "check_logic": "System-level. Users should verify their invoicing software has this declaration.",
+      "fix": "Solicitar al proveedor de su software de facturación la declaración responsable conforme a RD 1007/2023 Art. 3 y OM HAC/1177/2024 Art. 15.",
+      "aeat_faq_ref": "FAQs-AEAT-DEV-v1.3 sections 3 and 14"
+    }
+  ],
+
+  "scoring": {
+    "method": "Errors and warnings only — info rules do not affect score",
+    "error_penalty": 15,
+    "warning_penalty": 5,
+    "info_penalty": 0,
+    "formula": "score = max(0, 100 - (error_count × 15) - (warning_count × 5))",
+    "bands": {
+      "ready": { "min": 90, "label": "Listo para VeriFactu", "color": "green", "description": "Facturas cumplen requisitos ROF y están listas para ser procesadas por un SIF adaptado" },
+      "minor_issues": { "min": 70, "max": 89, "label": "Problemas menores", "color": "amber", "description": "Advertencias que deben corregirse antes de la entrada en vigor en 2027" },
+      "needs_work": { "min": 0, "max": 69, "label": "Requiere correcciones", "color": "red", "description": "Errores críticos que impiden la emisión válida de facturas" }
+    }
+  },
+
+  "demo_broken_invoice": {
+    "description": "Use this as the demo input. Triggers 5 errors — good for demonstrating the compliance checker.",
+    "fields": {
+      "numero_factura": "",
+      "fecha_emision": "15/3/25",
+      "proveedor_nombre": "TechConsult",
+      "proveedor_nif": "1234567",
+      "cliente_nombre": "Cliente XYZ",
+      "cliente_nif": null,
+      "concepto": "Web",
+      "base_imponible": 1000.0,
+      "iva_porcentaje": 21,
+      "iva_cuota": 200.0,
+      "irpf_porcentaje": 15,
+      "irpf_retencion": 150.0,
+      "total": 1250.0
+    },
+    "expected_violations": [
+      { "id": "ROF-001", "reason": "numero_factura is empty" },
+      { "id": "ROF-004", "reason": "NIF '1234567' has 7 digits, missing check letter — fails all three regex patterns" },
+      { "id": "ROF-005", "reason": "concepto 'Web' is only 3 chars, minimum is 5" },
+      { "id": "ROF-008", "reason": "iva_cuota 200 != round(1000 * 21/100, 2) = 210.0 — delta is 10, exceeds tolerance of 0.02" },
+      { "id": "ROF-009", "reason": "total 1250 != 1000 + 200 - 150 = 1050 — delta is 200, exceeds tolerance" }
+    ],
+    "expected_score": 25
+  }
+}
