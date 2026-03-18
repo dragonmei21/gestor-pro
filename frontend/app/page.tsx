@@ -1,12 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
-import { LedgerEntry } from "@/lib/types"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { TrendingUp, TrendingDown, AlertCircle, ShieldCheck } from "lucide-react"
+
+const API = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000")
 
 interface Summary {
   total_ingresos: number
@@ -16,133 +12,126 @@ interface Summary {
   period: string
 }
 
+interface LedgerEntry {
+  id: number
+  fecha: string
+  concepto: string
+  contraparte: string
+  tipo: string
+  total: number
+  estado_pago: string
+}
+
 export default function Dashboard() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    Promise.all([api.getLedgerSummary("2025-Q1"), api.getLedger()])
+    Promise.all([
+      fetch(`${API}/api/ledger/summary?quarter=2025-Q1`).then(r => r.json()),
+      fetch(`${API}/api/ledger`).then(r => r.json()),
+    ])
       .then(([s, l]) => {
         setSummary(s)
-        setLedger(l.slice(0, 5))
+        setLedger(Array.isArray(l) ? l.slice(0, 8) : [])
       })
+      .catch(() => setError("No se puede conectar al backend"))
       .finally(() => setLoading(false))
   }, [])
 
-  const kpis = summary
-    ? [
-        {
-          title: "Ingresos Q1",
-          value: `€${summary.total_ingresos.toLocaleString("es-ES", { minimumFractionDigits: 0 })}`,
-          delta: "2025-Q1",
-          color: "text-emerald-600",
-          bg: "bg-emerald-50",
-          icon: TrendingUp,
-        },
-        {
-          title: "Gastos Q1",
-          value: `€${summary.total_gastos.toLocaleString("es-ES", { minimumFractionDigits: 0 })}`,
-          delta: "2025-Q1",
-          color: "text-red-500",
-          bg: "bg-red-50",
-          icon: TrendingDown,
-        },
-        {
-          title: "IVA a pagar",
-          value: `€${summary.iva_a_pagar.toLocaleString("es-ES", { minimumFractionDigits: 0 })}`,
-          delta: "Vence 20 Abr",
-          color: "text-amber-600",
-          bg: "bg-amber-50",
-          icon: AlertCircle,
-        },
-        {
-          title: "Beneficio neto",
-          value: `€${summary.beneficio_neto.toLocaleString("es-ES", { minimumFractionDigits: 0 })}`,
-          delta: "2025-Q1",
-          color: "text-blue-600",
-          bg: "bg-blue-50",
-          icon: ShieldCheck,
-        },
-      ]
-    : []
+  const kpis = summary ? [
+    { label: "Ingresos Q1", value: `€${summary.total_ingresos?.toLocaleString("es-ES") ?? "—"}`, color: "#4ade80" },
+    { label: "Gastos Q1",   value: `€${summary.total_gastos?.toLocaleString("es-ES") ?? "—"}`,   color: "#f87171" },
+    { label: "IVA a pagar", value: `€${summary.iva_a_pagar?.toLocaleString("es-ES") ?? "—"}`,    color: "#fbbf24" },
+    { label: "Beneficio neto", value: `€${summary.beneficio_neto?.toLocaleString("es-ES") ?? "—"}`, color: "#818cf8" },
+  ] : []
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#f0f0ee]">Dashboard</h2>
-        <p className="text-sm text-[#8b8b8b] mt-1">Resumen financiero · 2025-Q1</p>
+    <div style={{ padding: "32px 40px" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 24, fontWeight: 400, color: "#f0f0ee", margin: 0 }}>
+          Dashboard
+        </h1>
+        <p style={{ fontSize: 12, color: "#8b8b8b", marginTop: 4 }}>
+          Resumen financiero · 2025-Q1
+        </p>
       </div>
 
+      {error && (
+        <div style={{ padding: 16, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 8, color: "#f87171", marginBottom: 24, fontSize: 13 }}>
+          {error} — asegúrate de que el backend está corriendo en el puerto 8000
+        </div>
+      )}
+
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 28 }}>
         {loading
           ? Array(4).fill(0).map((_, i) => (
-              <Card key={i}><CardContent className="p-6"><Skeleton className="h-16 w-full" /></CardContent></Card>
+              <div key={i} style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "22px 24px", height: 90 }} />
             ))
-          : kpis.map((kpi) => (
-              <Card key={kpi.title} className="border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">{kpi.title}</p>
-                      <p className={`text-2xl font-bold mt-1 ${kpi.color}`}>{kpi.value}</p>
-                      <p className="text-xs text-gray-400 mt-1">{kpi.delta}</p>
-                    </div>
-                    <div className={`p-2 rounded-lg ${kpi.bg}`}>
-                      <kpi.icon className={`w-5 h-5 ${kpi.color}`} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          : kpis.map(k => (
+              <div key={k.label} style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "22px 24px" }}>
+                <div style={{ fontSize: 10, color: "#4a4a4a", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
+                  {k.label}
+                </div>
+                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 26, fontWeight: 400, color: k.color }}>
+                  {k.value}
+                </div>
+              </div>
+            ))
+        }
       </div>
 
       {/* Recent Activity */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Actividad reciente</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-left text-[#4a4a4a]">
-                  <th className="pb-2 font-medium">Fecha</th>
-                  <th className="pb-2 font-medium">Concepto</th>
-                  <th className="pb-2 font-medium">Contraparte</th>
-                  <th className="pb-2 font-medium text-right">Total</th>
-                  <th className="pb-2 font-medium text-right">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ledger.map((e) => (
-                  <tr key={e.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                    <td className="py-3 text-[#8b8b8b]">{e.fecha}</td>
-                    <td className="py-3 font-medium text-[#f0f0ee] max-w-[200px] truncate">{e.concepto}</td>
-                    <td className="py-3 text-[#8b8b8b]">{e.contraparte}</td>
-                    <td className="py-3 text-right font-mono">
-                      <span className={e.tipo === "ingreso" ? "text-emerald-600" : "text-red-500"}>
-                        {e.tipo === "ingreso" ? "+" : "-"}€{Math.abs(e.total).toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right">
-                      <Badge variant={e.estado_pago === "pagado" ? "default" : e.estado_pago === "vencido" ? "destructive" : "secondary"}
-                        className="text-xs">
-                        {e.estado_pago}
-                      </Badge>
-                    </td>
-                  </tr>
+      <div style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#f0f0ee" }}>Actividad reciente</span>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 32, textAlign: "center", color: "#4a4a4a", fontSize: 13 }}>Cargando...</div>
+        ) : ledger.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center", color: "#4a4a4a", fontSize: 13 }}>
+            No hay datos. Comprueba la conexión con el backend.
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "Inter, sans-serif" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                {["Fecha", "Concepto", "Contraparte", "Total", "Estado"].map((c, i) => (
+                  <th key={c} style={{ padding: "9px 20px", textAlign: i >= 3 ? "right" : "left", fontSize: 10, fontWeight: 500, color: "#4a4a4a", letterSpacing: "0.07em", textTransform: "uppercase" }}>
+                    {c}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+              </tr>
+            </thead>
+            <tbody>
+              {ledger.map((e, i) => (
+                <tr key={e.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: i % 2 === 1 ? "rgba(255,255,255,0.012)" : "transparent" }}>
+                  <td style={{ padding: "12px 20px", fontSize: 12, color: "#8b8b8b", fontVariantNumeric: "tabular-nums" }}>{e.fecha}</td>
+                  <td style={{ padding: "12px 20px", fontSize: 13, color: "#f0f0ee", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.concepto}</td>
+                  <td style={{ padding: "12px 20px", fontSize: 12, color: "#8b8b8b" }}>{e.contraparte}</td>
+                  <td style={{ padding: "12px 20px", textAlign: "right", fontSize: 13, fontWeight: 500, fontVariantNumeric: "tabular-nums", color: e.tipo === "ingreso" ? "#4ade80" : "#f87171" }}>
+                    {e.tipo === "ingreso" ? "+" : "-"}€{Math.abs(e.total).toFixed(2)}
+                  </td>
+                  <td style={{ padding: "12px 20px", textAlign: "right" }}>
+                    <span style={{
+                      fontSize: 10, padding: "2px 8px", borderRadius: 99, fontWeight: 500,
+                      background: e.estado_pago === "pagado" ? "rgba(74,222,128,0.12)" : e.estado_pago === "vencido" ? "rgba(248,113,113,0.12)" : "rgba(251,191,36,0.12)",
+                      color: e.estado_pago === "pagado" ? "#4ade80" : e.estado_pago === "vencido" ? "#f87171" : "#fbbf24",
+                    }}>
+                      {e.estado_pago}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }
