@@ -54,23 +54,23 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-8 py-5 border-b bg-white">
-        <h2 className="text-xl font-bold text-gray-900">Asistente Financiero</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Con acceso en tiempo real a tu contabilidad · Powered by GPT-4o + MCP</p>
+      <div className="px-8 py-5 border-b border-white/10 bg-[#111111]">
+        <h2 className="text-xl font-semibold text-white/90">Asistente Financiero</h2>
+        <p className="text-sm text-white/50 mt-0.5">Con acceso en tiempo real a tu contabilidad · Powered by GPT‑4o + MCP</p>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4 bg-[#0f0f0f]">
         {messages.length === 0 && (
           <div className="text-center py-16">
-            <MessageSquare className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium mb-6">¿En qué te puedo ayudar?</p>
+            <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
+            <p className="text-white/60 font-medium mb-6">¿En qué te puedo ayudar?</p>
             <div className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
               {SUGGESTED.map((q) => (
                 <button
                   key={q}
                   onClick={() => send(q)}
-                  className="text-sm px-3 py-2 rounded-full border border-gray-200 text-gray-600 hover:border-[#0FA876] hover:text-[#0FA876] transition-colors text-left"
+                  className="text-sm px-3 py-2 rounded-full border border-white/10 text-white/60 hover:border-emerald-400/60 hover:text-emerald-200 transition-colors text-left bg-white/5"
                 >
                   {q}
                 </button>
@@ -85,12 +85,12 @@ export default function ChatPage() {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
                   msg.role === "user"
-                    ? "bg-[#0FA876] text-white"
-                    : "bg-white border border-gray-100 shadow-sm text-gray-800"
+                    ? "bg-emerald-500/90 text-white"
+                    : "bg-[#151515] border border-white/10 text-white/80"
                 }`}
               >
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none">
+                  <div className="prose prose-invert prose-sm max-w-none">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                 ) : (
@@ -105,12 +105,12 @@ export default function ChatPage() {
                 {msg.tools_called.map((tc, ti) => (
                   <div
                     key={ti}
-                    className="flex items-start gap-2 px-3 py-2 bg-gray-50 rounded-lg border-l-2 border-[#0FA876] max-w-[75%]"
+                    className="flex items-start gap-2 px-3 py-2 bg-white/5 rounded-lg border-l-2 border-emerald-400/70 max-w-[75%]"
                   >
-                    <Wrench className="w-3 h-3 text-[#0FA876] mt-0.5 shrink-0" />
+                    <Wrench className="w-3 h-3 text-emerald-300 mt-0.5 shrink-0" />
                     <div>
-                      <code className="text-xs font-mono text-[#0FA876]">{tc.tool}</code>
-                      <p className="text-xs text-gray-400 mt-0.5 font-mono break-all">
+                      <code className="text-xs font-mono text-emerald-200">{tc.tool}</code>
+                      <p className="text-xs text-white/50 mt-0.5 font-mono break-all">
                         {tc.result_preview.slice(0, 120)}…
                       </p>
                     </div>
@@ -123,11 +123,11 @@ export default function ChatPage() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3">
+            <div className="bg-[#151515] border border-white/10 rounded-2xl px-4 py-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="px-8 py-4 border-t bg-white">
+      <div className="px-8 py-4 border-t border-white/10 bg-[#111111]">
         <div className="flex gap-3">
           <input
             type="text"
@@ -144,13 +144,13 @@ export default function ChatPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
             placeholder="Pregunta sobre tu contabilidad..."
-            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#0FA876] focus:ring-1 focus:ring-[#0FA876]"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 bg-[#0f0f0f] text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/30"
             disabled={loading}
           />
           <Button
             onClick={() => send(input)}
             disabled={!input.trim() || loading}
-            className="bg-[#0FA876] hover:bg-[#0FA876]/90 text-white px-4 rounded-xl"
+            className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 rounded-xl"
           >
             <Send className="w-4 h-4" />
           </Button>

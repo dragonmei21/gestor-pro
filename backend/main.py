@@ -15,6 +15,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from dotenv import load_dotenv
 import openai
 
@@ -401,6 +402,67 @@ class ChatRequest(BaseModel):
     history: list = []
 
 
+# ── demo chat fallback ─────────────────────────────────────────────────────────
+
+def _fmt_eur(value: float) -> str:
+    return f"€{value:,.2f}"
+
+
+def demo_chat_response(message: str, db: Session) -> str:
+    msg = (message or "").lower()
+    start = date(2025, 1, 1)
+    end = date(2025, 3, 31)
+    entries = db.query(models.LedgerEntry).filter(
+        models.LedgerEntry.fecha >= start,
+        models.LedgerEntry.fecha <= end,
+    ).all()
+
+    ingresos = [e for e in entries if e.tipo == "ingreso"]
+    gastos = [e for e in entries if e.tipo == "gasto"]
+
+    total_ing = sum(e.total for e in ingresos)
+    total_gas = sum(e.total for e in gastos)
+    iva_rep = sum(e.iva for e in ingresos)
+    iva_sop = sum(e.iva for e in gastos)
+
+    if "iva" in msg or "vat" in msg:
+        return (
+            "Resumen IVA Q1 2025:\n"
+            f"- IVA repercutido: {_fmt_eur(iva_rep)}\n"
+            f"- IVA soportado: {_fmt_eur(iva_sop)}\n"
+            f"- IVA a pagar: {_fmt_eur(iva_rep - iva_sop)}"
+        )
+
+    if "software" in msg:
+        sw = sum(e.total for e in gastos if e.categoria == "software")
+        return f"Gasto en software (Q1 2025): {_fmt_eur(sw)}."
+
+    if "pendiente" in msg or "outstanding" in msg or "cobro" in msg:
+        pend = db.query(models.LedgerEntry).filter(
+            models.LedgerEntry.estado_pago != "pagado"
+        ).order_by(desc(models.LedgerEntry.fecha)).limit(5).all()
+        if not pend:
+            return "No veo facturas pendientes en Q1 2025."
+        lines = [
+            f"- {p.fecha}: {p.concepto} ({p.contraparte}) → {_fmt_eur(p.total)}"
+            for p in pend
+        ]
+        return "Facturas pendientes:\n" + "\n".join(lines)
+
+    if "resum" in msg or "summary" in msg or "situación" in msg:
+        return (
+            "Resumen Q1 2025:\n"
+            f"- Ingresos: {_fmt_eur(total_ing)}\n"
+            f"- Gastos: {_fmt_eur(total_gas)}\n"
+            f"- Beneficio neto: {_fmt_eur(total_ing - total_gas)}"
+        )
+
+    return (
+        "Modo demo activo. Puedo responder sobre IVA, gastos de software, "
+        "facturas pendientes y resumen del Q1 2025."
+    )
+
+
 # ── endpoints ──────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
@@ -670,9 +732,23 @@ async def cfo_report(
 
 
 @app.post("/api/chat")
-async def chat(req: ChatRequest):
-    # db is not passed here — the MCP server manages its own DB session
-    return await run_agent_loop(req.message, req.history)
+async def chat(req: ChatRequest, db: Session = Depends(get_db)):
+    if not os.getenv("OPENAI_API_KEY"):
+        return {
+            "response": demo_chat_response(req.message, db),
+            "tools_called": [],
+            "iterations": 0,
+            "demo": True,
+        }
+    try:
+        return await run_agent_loop(req.message, req.history)
+    except Exception:
+        return {
+            "response": demo_chat_response(req.message, db),
+            "tools_called": [],
+            "iterations": 0,
+            "demo": True,
+        }
 
 
 # ── gmail endpoints ────────────────────────────────────────────────────────────

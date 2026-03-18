@@ -34,7 +34,7 @@ export default function Dashboard() {
     ])
       .then(([s, l]) => {
         setSummary(s)
-        setLedger(Array.isArray(l) ? l.slice(0, 8) : [])
+        setLedger(Array.isArray(l) ? l.slice(0, 12) : [])
       })
       .catch(() => setError("No se puede conectar al backend"))
       .finally(() => setLoading(false))

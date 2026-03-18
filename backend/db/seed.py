@@ -112,10 +112,16 @@ def seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        # Skip if already seeded
-        if db.query(User).count() > 0:
-            print("DB already seeded. Skipping.")
-            return
+        force = os.getenv("FORCE_SEED", "false").lower() == "true"
+        if force:
+            db.query(LedgerEntry).delete()
+            db.query(User).delete()
+            db.commit()
+        else:
+            # Skip if already seeded
+            if db.query(User).count() > 0:
+                print("DB already seeded. Skipping.")
+                return
 
         user = User(
             nombre="Demo Autónomo",
