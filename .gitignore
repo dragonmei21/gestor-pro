@@ -37,6 +37,9 @@ Thumbs.db
 .vscode/
 *.swp
 
+# Gmail OAuth credentials (never commit these)
+backend/credentials/
+
 # Logs
 *.log
 npm-debug.log*

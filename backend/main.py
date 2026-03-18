@@ -5,8 +5,11 @@ Run: uvicorn backend.main:app --reload --app-dir /path/to/gestor-pro
 import os
 import json
 import time
-from datetime import date
+import logging
+from datetime import date, datetime
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -667,3 +670,148 @@ async def cfo_report(
 async def chat(req: ChatRequest):
     # db is not passed here — the MCP server manages its own DB session
     return await run_agent_loop(req.message, req.history)
+
+
+# ── gmail endpoints ────────────────────────────────────────────────────────────
+
+@app.get("/api/gmail/status")
+def gmail_status():
+    from backend.engine.gmail_watcher import is_gmail_connected
+    demo_mode = os.getenv("GMAIL_DEMO_MODE", "true").lower() == "true"
+    return {
+        "connected": demo_mode or is_gmail_connected(),
+        "demo_mode": demo_mode,
+    }
+
+
+@app.post("/api/gmail/connect")
+def gmail_connect():
+    if os.getenv("GMAIL_DEMO_MODE", "true").lower() == "true":
+        return {"status": "demo_mode", "message": "Modo demo — conexión Gmail simulada"}
+    try:
+        from backend.engine.gmail_watcher import get_gmail_service
+        get_gmail_service()
+        return {"status": "connected"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/gmail/disconnect")
+def gmail_disconnect():
+    from backend.engine.gmail_watcher import disconnect_gmail
+    disconnect_gmail()
+    return {"status": "disconnected"}
+
+
+@app.post("/api/gmail/scan")
+async def gmail_scan(hours_back: int = 24, db: Session = Depends(get_db)):
+    from backend.engine.gmail_watcher import check_new_invoices
+    from backend.engine.invoice_parser import parse_invoice
+
+    attachments = check_new_invoices(hours_back=hours_back)
+    results     = []
+    user        = db.query(models.User).first()
+    user_id     = user.id if user else 1
+
+    for att in attachments:
+        try:
+            # Demo mode: use pre-extracted data to skip the LLM parser
+            if "_demo_extracted" in att:
+                extracted = att["_demo_extracted"]
+                validation_passed = True
+                validation_errors = []
+                repair_attempted  = False
+                repair_succeeded  = None
+                extraction_model  = "demo"
+            else:
+                # Real mode: full invoice_parser pipeline
+                extracted         = await parse_invoice(att["bytes"], att["filename"])
+                validation_passed = extracted.get("validation_passed", False)
+                validation_errors = extracted.get("validation_errors", [])
+                repair_attempted  = extracted.get("repair_attempted", False)
+                repair_succeeded  = extracted.get("repair_succeeded")
+                extraction_model  = extracted.get("extraction_model", "gpt-4o-mini")
+
+            # Parse fecha_emision string → date object
+            fecha_str = extracted.get("fecha_emision")
+            from datetime import date as date_type
+            if isinstance(fecha_str, str):
+                try:
+                    fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+                except ValueError:
+                    fecha = date.today()
+            elif fecha_str:
+                fecha = fecha_str
+            else:
+                fecha = date.today()
+
+            # Determine trimestre from the invoice date
+            q = (fecha.month - 1) // 3 + 1
+            trimestre = f"{fecha.year}-Q{q}"
+
+            inv = models.Invoice(
+                user_id          = user_id,
+                filename         = att["filename"],
+                file_type        = att["mime_type"].split("/")[-1],
+                raw_text         = "",
+                numero_factura   = extracted.get("numero_factura"),
+                proveedor_nombre = extracted.get("proveedor_nombre"),
+                proveedor_nif    = extracted.get("proveedor_nif"),
+                cliente_nombre   = extracted.get("cliente_nombre"),
+                cliente_nif      = extracted.get("cliente_nif"),
+                concepto         = extracted.get("concepto"),
+                base_imponible   = extracted.get("base_imponible", 0),
+                iva_porcentaje   = extracted.get("iva_porcentaje", 21),
+                iva_cuota        = extracted.get("iva_cuota", 0),
+                irpf_porcentaje  = extracted.get("irpf_porcentaje", 0),
+                irpf_retencion   = extracted.get("irpf_retencion", 0),
+                total            = extracted.get("total", 0),
+                moneda           = extracted.get("moneda", "EUR"),
+                tipo             = extracted.get("tipo", "gasto"),
+                categoria        = extracted.get("categoria", "otro"),
+                deducible        = extracted.get("deducible", True),
+                extraction_model = extraction_model,
+                validation_passed = validation_passed,
+                validation_errors = validation_errors,
+                repair_attempted  = repair_attempted,
+                repair_succeeded  = repair_succeeded,
+            )
+            db.add(inv)
+            db.flush()
+
+            entry = models.LedgerEntry(
+                user_id        = user_id,
+                invoice_id     = inv.id,
+                fecha          = fecha,
+                concepto       = extracted.get("concepto", att["email_subject"]),
+                contraparte    = extracted.get("proveedor_nombre", att["email_from"]),
+                tipo           = extracted.get("tipo", "gasto"),
+                categoria      = extracted.get("categoria", "otro"),
+                base_imponible = extracted.get("base_imponible", 0),
+                iva            = extracted.get("iva_cuota", 0),
+                irpf           = extracted.get("irpf_retencion", 0),
+                total          = extracted.get("total", 0),
+                estado_pago    = "pendiente",
+                trimestre      = trimestre,
+                ejercicio      = fecha.year,
+            )
+            db.add(entry)
+
+            results.append({
+                "filename": att["filename"],
+                "status":   "saved",
+                "total":    extracted.get("total"),
+                "concepto": extracted.get("concepto"),
+                "source":   "gmail_demo" if "_demo_extracted" in att else "gmail_real",
+            })
+
+        except Exception as e:
+            logger.error(f"Failed to process Gmail attachment {att.get('filename')}: {e}")
+            results.append({"filename": att.get("filename"), "status": "error", "error": str(e)})
+
+    db.commit()
+    return {
+        "scanned": len(attachments),
+        "saved":   sum(1 for r in results if r["status"] == "saved"),
+        "results": results,
+    }
