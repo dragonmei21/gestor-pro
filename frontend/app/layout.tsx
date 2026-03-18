@@ -65,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 overflow-y-auto bg-gray-50">
+          <main className="flex-1 overflow-y-auto bg-[#0f0f0f]">
             {children}
           </main>
         </div>

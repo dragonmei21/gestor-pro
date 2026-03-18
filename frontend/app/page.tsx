@@ -70,8 +70,8 @@ export default function Dashboard() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-sm text-gray-500 mt-1">Resumen financiero · 2025-Q1</p>
+        <h2 className="text-2xl font-bold text-[#f0f0ee]">Dashboard</h2>
+        <p className="text-sm text-[#8b8b8b] mt-1">Resumen financiero · 2025-Q1</p>
       </div>
 
       {/* KPI Cards */}
@@ -111,7 +111,7 @@ export default function Dashboard() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-gray-500">
+                <tr className="border-b border-white/10 text-left text-[#4a4a4a]">
                   <th className="pb-2 font-medium">Fecha</th>
                   <th className="pb-2 font-medium">Concepto</th>
                   <th className="pb-2 font-medium">Contraparte</th>
@@ -121,10 +121,10 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {ledger.map((e) => (
-                  <tr key={e.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-3 text-gray-500">{e.fecha}</td>
-                    <td className="py-3 font-medium text-gray-800 max-w-[200px] truncate">{e.concepto}</td>
-                    <td className="py-3 text-gray-500">{e.contraparte}</td>
+                  <tr key={e.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                    <td className="py-3 text-[#8b8b8b]">{e.fecha}</td>
+                    <td className="py-3 font-medium text-[#f0f0ee] max-w-[200px] truncate">{e.concepto}</td>
+                    <td className="py-3 text-[#8b8b8b]">{e.contraparte}</td>
                     <td className="py-3 text-right font-mono">
                       <span className={e.tipo === "ingreso" ? "text-emerald-600" : "text-red-500"}>
                         {e.tipo === "ingreso" ? "+" : "-"}€{Math.abs(e.total).toFixed(2)}
