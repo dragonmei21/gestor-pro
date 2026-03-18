@@ -1,11 +1,22 @@
-"""Seed demo data — run with: python -m backend.db.seed"""
+"""Seed demo data — run with: python -m db.seed (from backend/) or python -m backend.db.seed (from project root)"""
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+# Support running from either project root or backend/
+_here = os.path.dirname(os.path.abspath(__file__))
+_backend_dir = os.path.dirname(_here)
+_project_dir = os.path.dirname(_backend_dir)
+for _p in (_backend_dir, _project_dir):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from datetime import date
-from backend.db.database import engine, SessionLocal
-from backend.db.models import Base, User, LedgerEntry
+try:
+    from db.database import engine, SessionLocal
+    from db.models import Base, User, LedgerEntry
+except ModuleNotFoundError:
+    from backend.db.database import engine, SessionLocal
+    from backend.db.models import Base, User, LedgerEntry
 
 DEMO_LEDGER = [
     # Ingresos Q1 2025
