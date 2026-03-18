@@ -78,7 +78,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           {/* Main content */}
           <main className="flex-1 overflow-y-auto bg-[#0f0f0f]">
-            {children}
+            <div className="min-h-full bg-[radial-gradient(1200px_600px_at_20%_-10%,rgba(16,185,129,0.10),transparent_60%)]">
+              {children}
+            </div>
           </main>
         </div>
       </body>

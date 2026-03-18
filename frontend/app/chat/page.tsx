@@ -54,18 +54,21 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-8 py-5 border-b border-white/10 bg-[#111111]">
-        <h2 className="text-xl font-semibold text-white/90">Asistente Financiero</h2>
-        <p className="text-sm text-white/50 mt-0.5">Con acceso en tiempo real a tu contabilidad · Powered by GPT‑4o + MCP</p>
+      <div className="px-10 py-6 border-b border-white/10 bg-[#111111]">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-semibold text-white/90">Asistente Financiero</h2>
+          <p className="text-sm text-white/50 mt-1">Con acceso en tiempo real a tu contabilidad · Powered by GPT‑4o + MCP</p>
+        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4 bg-[#0f0f0f]">
+      <div className="flex-1 overflow-y-auto px-10 py-8 space-y-6 bg-[#0f0f0f]">
+        <div className="max-w-5xl mx-auto space-y-6">
         {messages.length === 0 && (
           <div className="text-center py-16">
             <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
             <p className="text-white/60 font-medium mb-6">¿En qué te puedo ayudar?</p>
-            <div className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
+            <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
               {SUGGESTED.map((q) => (
                 <button
                   key={q}
@@ -83,7 +86,7 @@ export default function ChatPage() {
           <div key={idx}>
             <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
+                className={`max-w-[70%] rounded-2xl px-5 py-4 text-sm leading-relaxed ${
                   msg.role === "user"
                     ? "bg-emerald-500/90 text-white"
                     : "bg-[#151515] border border-white/10 text-white/80"
@@ -133,24 +136,25 @@ export default function ChatPage() {
           </div>
         )}
         <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input */}
-      <div className="px-8 py-4 border-t border-white/10 bg-[#111111]">
-        <div className="flex gap-3">
+      <div className="px-10 py-6 border-t border-white/10 bg-[#111111]">
+        <div className="max-w-5xl mx-auto flex gap-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
             placeholder="Pregunta sobre tu contabilidad..."
-            className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 bg-[#0f0f0f] text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/30"
+            className="flex-1 px-5 py-4 rounded-2xl border border-white/10 bg-[#0f0f0f] text-base text-white/80 placeholder:text-white/30 focus:outline-none focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/30"
             disabled={loading}
           />
           <Button
             onClick={() => send(input)}
             disabled={!input.trim() || loading}
-            className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 rounded-xl"
+            className="bg-emerald-500 hover:bg-emerald-400 text-white px-6 rounded-2xl text-base"
           >
             <Send className="w-4 h-4" />
           </Button>

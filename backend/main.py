@@ -666,9 +666,16 @@ async def cfo_report(
 ):
     from backend.engine.cfo_engine import CFOEngine
 
-    cfo_engine    = CFOEngine(db)
-    forecast_data = await cfo_engine.generate_forecast(months=3, method="avg")
-    narrative     = await cfo_engine.generate_cfo_narrative(forecast_data)
+    cfo_engine = CFOEngine(db)
+    try:
+        forecast_data = await cfo_engine.generate_forecast(months=3, method="avg")
+    except Exception:
+        forecast_data = {"historical": [], "forecast": [], "cashflow_risk": "low", "summary": {}}
+
+    try:
+        narrative = await cfo_engine.generate_cfo_narrative(forecast_data)
+    except Exception:
+        narrative = "Informe CFO temporalmente no disponible. Reintenta en unos minutos."
 
     # Fix 6: use actual data quarter instead of hardcoded "2025-Q1"
     active_quarter = db.query(models.LedgerEntry.trimestre).order_by(
