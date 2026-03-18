@@ -62,6 +62,27 @@ export default function CompliancePage() {
         <p className="text-sm text-gray-500 mt-1">Sube una factura y detectamos violaciones VeriFactu 2025 al instante</p>
       </div>
 
+      {/* Pipeline explanation */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, alignItems: "center", flexWrap: "wrap" }}>
+        {[
+          { n: "1", label: "Upload invoice" },
+          { n: "2", label: "LLM extraction" },
+          { n: "3", label: "Rules validation" },
+          { n: "4", label: "Auto-repair" },
+          { n: "5", label: "XML generation" },
+        ].map((step, i, arr) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 600, color: "#4ade80" }}>
+                {step.n}
+              </div>
+              <span style={{ fontSize: 11, color: "#7a9e7a", whiteSpace: "nowrap" }}>{step.label}</span>
+            </div>
+            {i < arr.length - 1 && <div style={{ width: 20, height: 1, background: "rgba(74,222,128,0.2)" }} />}
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Upload */}
         <div className="space-y-4">

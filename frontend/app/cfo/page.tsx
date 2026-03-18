@@ -47,9 +47,15 @@ export default function CFOPage() {
           <p className="text-sm text-gray-500 mt-1">Previsión de tesorería + narrativa ejecutiva en español</p>
         </div>
         {!report && (
-          <Button onClick={loadReport} disabled={loading} className="bg-[#0FA876] hover:bg-[#0FA876]/90 text-white">
-            {loading ? "Analizando datos..." : "Generar informe CFO"}
-          </Button>
+          <div>
+            <Button onClick={loadReport} disabled={loading} className="bg-[#0FA876] hover:bg-[#0FA876]/90 text-white">
+              {loading ? "Analizando datos..." : "Generar informe CFO"}
+            </Button>
+            <p style={{ fontSize: 11, color: "#3d5c3d", marginTop: 8, lineHeight: 1.5 }}>
+              Reads your ledger → runs cashflow model → sends structured data to claude-sonnet-4-6 →
+              generates executive narrative in Spanish. Two LLM calls, one deterministic forecast.
+            </p>
+          </div>
         )}
       </div>
 

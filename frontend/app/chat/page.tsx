@@ -64,6 +64,29 @@ export default function ChatPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-12 py-8 space-y-6 bg-[#0f1214]">
         <div className="max-w-5xl mx-auto space-y-6">
+
+        {/* AI Process Banner */}
+        <div style={{ background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.15)", borderRadius: 10, padding: "14px 18px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 14 }}>
+          <div style={{ flexShrink: 0, marginTop: 2 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#818cf8", animation: "pulse 2s ease infinite" }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", color: "#818cf8", textTransform: "uppercase", marginBottom: 4 }}>
+              MCP Agent Loop Active
+            </div>
+            <p style={{ fontSize: 12, color: "#7a9e7a", lineHeight: 1.6 }}>
+              Each message triggers a multi-step reasoning loop: Claude decides which tools to call,
+              executes them against your real ledger data (SQLite via MCP server),
+              and synthesizes the results. Tool calls appear inline below.
+            </p>
+            <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+              {["get_ledger_summary", "filter_ledger", "simulate_tax", "forecast_cashflow"].map(t => (
+                <code key={t} style={{ fontSize: 10, color: "#818cf8", background: "rgba(129,140,248,0.1)", padding: "2px 6px", borderRadius: 4 }}>{t}</code>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {messages.length === 0 && (
           <div className="text-center py-16">
             <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
