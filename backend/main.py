@@ -309,12 +309,20 @@ def execute_tool(name: str, args: dict, db: Session) -> str:
     return json.dumps({"error": f"Unknown tool: {name}"})
 
 
-# ── agent loop ─────────────────────────────────────────────────────────────────
+# ── real MCP agent loop ────────────────────────────────────────────────────────
+# Claude decides which tool to call → main.py sends request to mcp_server.py
+# subprocess via stdio → mcp_server runs the function → result comes back →
+# main.py passes it to Claude. This is proper MCP, not inline function calls.
 
-def run_agent_loop(user_message: str, history: list, db: Session) -> dict:
-    client   = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+async def run_agent_loop(user_message: str, history: list) -> dict:
+    import sys
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    oai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    # Fix 3: filter out any malformed history messages before sending to OpenAI
+    # Filter malformed history entries before sending to OpenAI
     safe_history = [
         m for m in history
         if isinstance(m, dict) and m.get("role") and m.get("content")
@@ -324,38 +332,54 @@ def run_agent_loop(user_message: str, history: list, db: Session) -> dict:
 
     tools_called = []
 
-    for iteration in range(5):
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            tools=OPENAI_TOOLS,
-            tool_choice="auto",
-        )
-        msg = response.choices[0].message
+    # Open one MCP subprocess connection for the lifetime of this request.
+    # All tool calls inside the agent loop share the same server session.
+    server_params = StdioServerParameters(
+        command=sys.executable,
+        args=["-m", "backend.mcp_server"],
+        env=os.environ.copy(),
+    )
 
-        # No tool calls → final answer
-        if not msg.tool_calls:
-            return {
-                "response":     msg.content,
-                "tools_called": tools_called,
-                "iterations":   iteration + 1,
-            }
+    async with stdio_client(server_params) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as mcp_session:
+            await mcp_session.initialize()
 
-        # Append assistant turn (with tool_calls) then execute each
-        messages.append(msg)
-        for tc in msg.tool_calls:
-            args   = json.loads(tc.function.arguments)
-            result = execute_tool(tc.function.name, args, db)
-            tools_called.append({
-                "tool":           tc.function.name,
-                "input":          args,
-                "result_preview": result[:200],
-            })
-            messages.append({
-                "role":         "tool",
-                "tool_call_id": tc.id,
-                "content":      result,
-            })
+            for iteration in range(5):
+                response = oai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=messages,
+                    tools=OPENAI_TOOLS,
+                    tool_choice="auto",
+                )
+                msg = response.choices[0].message
+
+                # No tool calls → Claude has a final answer
+                if not msg.tool_calls:
+                    return {
+                        "response":     msg.content,
+                        "tools_called": tools_called,
+                        "iterations":   iteration + 1,
+                    }
+
+                # Claude wants tools — send each request to the MCP server
+                messages.append(msg)
+                for tc in msg.tool_calls:
+                    args = json.loads(tc.function.arguments)
+
+                    # ← This is the real MCP call: goes to mcp_server.py subprocess
+                    mcp_result = await mcp_session.call_tool(tc.function.name, args)
+                    result_text = mcp_result.content[0].text if mcp_result.content else "{}"
+
+                    tools_called.append({
+                        "tool":           tc.function.name,
+                        "input":          args,
+                        "result_preview": result_text[:200],
+                    })
+                    messages.append({
+                        "role":         "tool",
+                        "tool_call_id": tc.id,
+                        "content":      result_text,
+                    })
 
     return {
         "response":     "No he podido completar la consulta en el número de pasos permitido.",
@@ -640,5 +664,6 @@ async def cfo_report(
 
 
 @app.post("/api/chat")
-def chat(req: ChatRequest, db: Session = Depends(get_db)):
-    return run_agent_loop(req.message, req.history, db)
+async def chat(req: ChatRequest):
+    # db is not passed here — the MCP server manages its own DB session
+    return await run_agent_loop(req.message, req.history)
