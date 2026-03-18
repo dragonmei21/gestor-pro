@@ -314,7 +314,12 @@ def execute_tool(name: str, args: dict, db: Session) -> str:
 def run_agent_loop(user_message: str, history: list, db: Session) -> dict:
     client   = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages += history
+    # Fix 3: filter out any malformed history messages before sending to OpenAI
+    safe_history = [
+        m for m in history
+        if isinstance(m, dict) and m.get("role") and m.get("content")
+    ]
+    messages += safe_history
     messages.append({"role": "user", "content": user_message})
 
     tools_called = []
@@ -469,9 +474,11 @@ async def compliance_check(file: UploadFile = File(...), db: Session = Depends(g
     }
 
     # Tool 1: validate
-    validation   = validator.check(invoice_data)
+    validation    = validator.check(invoice_data)
+    tools_ran     = 1
     # Tool 2: generate corrected XML
     corrected_xml = validator.generate_xml(invoice_data)
+    tools_ran    += 1
 
     # Tool 3: GPT-4o compliance narrative
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -488,13 +495,20 @@ Resultado del análisis:
 
 Escribe 2-3 párrafos explicando qué está mal, por qué importa legalmente, y cómo corregirlo. Sé directo y usa lenguaje claro, no técnico."""
 
-    narr = client.chat.completions.create(
-        model="gpt-4o",
-        max_tokens=600,
-        messages=[{"role": "user", "content": narrative_prompt}]
-    )
-    agent_narrative = narr.choices[0].message.content
-    elapsed_ms      = int((time.time() - start) * 1000)
+    try:
+        narr = client.chat.completions.create(
+            model="gpt-4o",
+            max_tokens=600,
+            messages=[{"role": "user", "content": narrative_prompt}]
+        )
+        agent_narrative = narr.choices[0].message.content
+        tools_ran += 1
+    except Exception:
+        agent_narrative = (
+            "No se pudo generar el análisis narrativo en este momento. "
+            "Revisa los errores listados arriba y corrígelos antes de volver a presentar la factura."
+        )
+    elapsed_ms = int((time.time() - start) * 1000)
 
     # Persist invoice + report
     user = db.query(models.User).first()
@@ -532,7 +546,7 @@ Escribe 2-3 párrafos explicando qué está mal, por qué importa legalmente, y 
         corrected_xml    = corrected_xml,
         agent_narrative  = agent_narrative,
         model_used       = "gpt-4o",
-        tool_calls_made  = 3,
+        tool_calls_made  = tools_ran,
         processing_time_ms = elapsed_ms,
     )
     db.add(report)
@@ -547,7 +561,7 @@ Escribe 2-3 párrafos explicando qué está mal, por qué importa legalmente, y 
         "warning_count":    validation["warning_count"],
         "agent_narrative":  agent_narrative,
         "corrected_xml":    corrected_xml,
-        "tool_calls_made":  3,
+        "tool_calls_made":  tools_ran,
         "processing_time_ms": elapsed_ms,
         "invoice_data":     invoice_data,
     }
@@ -564,8 +578,14 @@ async def cfo_report(
     forecast_data = await cfo_engine.generate_forecast(months=3, method="avg")
     narrative     = await cfo_engine.generate_cfo_narrative(forecast_data)
 
+    # Fix 6: use actual data quarter instead of hardcoded "2025-Q1"
+    active_quarter = db.query(models.LedgerEntry.trimestre).order_by(
+        models.LedgerEntry.fecha.desc()
+    ).first()
+    quarter_to_use = active_quarter[0] if active_quarter else _current_quarter()
+
     entries  = db.query(models.LedgerEntry).filter(
-        models.LedgerEntry.trimestre == "2025-Q1"
+        models.LedgerEntry.trimestre == quarter_to_use
     ).all()
     ingresos = [e for e in entries if e.tipo == "ingreso"]
     gastos   = [e for e in entries if e.tipo == "gasto"]

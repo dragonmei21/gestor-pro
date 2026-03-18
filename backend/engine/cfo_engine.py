@@ -137,14 +137,25 @@ class CFOEngine:
             "promedios":         forecast_data.get("summary", {}),
         }
 
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            max_tokens=800,
-            messages=[{
-                "role": "user",
-                "content": CFO_NARRATIVE_PROMPT.format(
-                    data=json.dumps(summary_for_prompt, indent=2, ensure_ascii=False)
-                )
-            }]
-        )
-        return response.choices[0].message.content
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                max_tokens=800,
+                messages=[{
+                    "role": "user",
+                    "content": CFO_NARRATIVE_PROMPT.format(
+                        data=json.dumps(summary_for_prompt, indent=2, ensure_ascii=False)
+                    )
+                }]
+            )
+            return response.choices[0].message.content
+        except Exception:
+            avg = forecast_data.get("summary", {})
+            return (
+                f"**Resumen financiero del período**\n\n"
+                f"Los datos muestran unos ingresos medios mensuales de {avg.get('avg_monthly_income', 0):,.2f}€ "
+                f"y gastos de {avg.get('avg_monthly_expense', 0):,.2f}€, "
+                f"con un neto mensual de {avg.get('avg_monthly_net', 0):,.2f}€. "
+                f"El análisis narrativo completo no está disponible en este momento. "
+                f"Por favor, revisa los datos del gráfico para más detalles."
+            )

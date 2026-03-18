@@ -72,6 +72,49 @@ Required fields:
 Return ONLY the JSON object. No explanation, no markdown, no code blocks."""
 
 
+# ── JSON parsing helpers ───────────────────────────────────────────────────────
+
+def _safe_parse_json(text: str) -> dict:
+    """Try multiple strategies to extract JSON from LLM output."""
+    # Strategy 1: direct parse
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 2: strip markdown fences then parse
+    cleaned = re.sub(r"^```[a-z]*\n?", "", text.strip())
+    cleaned = re.sub(r"\n?```$", "", cleaned).strip()
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 3: find first {...} block anywhere in the response
+    match = re.search(r"\{[\s\S]*\}", text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    # All strategies failed
+    raise ValueError(f"Could not parse JSON from model response: {text[:200]}")
+
+
+def _empty_extraction(reason: str) -> dict:
+    """Return a clearly-marked empty result instead of silent zeros."""
+    return {
+        "numero_factura": None, "fecha_emision": None,
+        "proveedor_nombre": "Error en extracción", "proveedor_nif": "",
+        "cliente_nombre": None, "cliente_nif": None,
+        "concepto": f"Extracción fallida: {reason}",
+        "base_imponible": 0, "iva_porcentaje": 21, "iva_cuota": 0,
+        "irpf_porcentaje": 0, "irpf_retencion": 0,
+        "total": 0, "moneda": "EUR",
+    }
+
+
 # ── text extraction ────────────────────────────────────────────────────────────
 
 def extract_pdf_text(file_bytes: bytes) -> str:
@@ -118,8 +161,8 @@ def validate_extraction(data: dict) -> list[str]:
         except ValueError:
             errors.append(f"fecha_emision '{fecha}' is not in YYYY-MM-DD format")
 
-    # NIF format
-    nif = str(data.get("proveedor_nif") or "")
+    # NIF format — uppercase first so "12345678a" passes same as "12345678A"
+    nif = str(data.get("proveedor_nif") or "").upper().strip()
     if not re.match(r'^[A-Z0-9]\d{7}[A-Z0-9]$', nif):
         errors.append(f"proveedor_nif '{nif}' has invalid format (expected e.g. 12345678A)")
 
@@ -254,23 +297,10 @@ async def parse_invoice(file_bytes: bytes, filename: str) -> dict:
             extraction_model = "gpt-4o-mini"
 
         raw_json = response.choices[0].message.content.strip()
-        # Strip markdown code fences if model added them
-        if raw_json.startswith("```"):
-            raw_json = re.sub(r"^```[a-z]*\n?", "", raw_json)
-            raw_json = re.sub(r"\n?```$", "", raw_json)
-        extracted = json.loads(raw_json)
+        extracted = _safe_parse_json(raw_json)
 
-    except (json.JSONDecodeError, Exception) as e:
-        # Return a best-effort empty result so the endpoint doesn't crash
-        extracted = {
-            "numero_factura": None, "fecha_emision": None,
-            "proveedor_nombre": "Error en extracción", "proveedor_nif": "",
-            "cliente_nombre": None, "cliente_nif": None,
-            "concepto": str(e), "base_imponible": 0,
-            "iva_porcentaje": 21, "iva_cuota": 0,
-            "irpf_porcentaje": 0, "irpf_retencion": 0,
-            "total": 0, "moneda": "EUR",
-        }
+    except Exception as e:
+        extracted = _empty_extraction(str(e))
         extraction_model = "gpt-4o-mini"
 
     # Step 3: Validate
@@ -292,10 +322,7 @@ async def parse_invoice(file_bytes: bytes, filename: str) -> dict:
                 )}]
             )
             repaired_raw = repair_response.choices[0].message.content.strip()
-            if repaired_raw.startswith("```"):
-                repaired_raw = re.sub(r"^```[a-z]*\n?", "", repaired_raw)
-                repaired_raw = re.sub(r"\n?```$", "", repaired_raw)
-            extracted = json.loads(repaired_raw)
+            extracted = _safe_parse_json(repaired_raw)
             errors = validate_extraction(extracted)
             repair_succeeded = len(errors) == 0
         except Exception:
