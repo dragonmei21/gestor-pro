@@ -42,15 +42,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
-          <aside className="w-64 bg-[#0e1417] text-white flex flex-col shrink-0 border-r border-white/10">
-            <div className="px-6 pt-6 pb-5 border-b border-white/10">
+          <aside className="w-64 flex flex-col shrink-0" style={{ background: "#0d1f0d", borderRight: "1px solid rgba(74,222,128,0.1)" }}>
+            <div className="px-6 pt-6 pb-5" style={{ borderBottom: "1px solid rgba(74,222,128,0.1)" }}>
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-[#152027] border border-white/10 grid place-items-center">
-                  <span className="text-emerald-200 text-xs font-semibold">GP</span>
+                <div className="h-9 w-9 rounded-lg grid place-items-center" style={{ background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.2)" }}>
+                  <span style={{ color: "#4ade80", fontSize: 12, fontWeight: 600 }}>✓</span>
                 </div>
                 <div>
-                  <h1 className="text-base font-semibold tracking-wide text-white/90">Pro Manager</h1>
-                  <p className="text-[11px] text-white/40">AI Financial Platform</p>
+                  <h1 style={{ fontSize: 14, fontWeight: 600, letterSpacing: "0.02em", color: "#e8f5e8", fontFamily: "'Inter', system-ui, sans-serif" }}>Gestor Pro</h1>
+                  <p style={{ fontSize: 11, color: "#3d5c3d" }}>AI Financial Platform</p>
                 </div>
               </div>
             </div>
@@ -59,21 +59,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                  className="sidebar-nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
                 >
-                  <Icon className="w-4 h-4 shrink-0 text-white/60" />
+                  <Icon className="w-4 h-4 shrink-0 sidebar-nav-icon" />
                   <span className="tracking-wide">{label}</span>
                 </Link>
               ))}
             </nav>
-            <div className="px-6 py-4 border-t border-white/10">
-              <p className="text-[11px] text-white/40">Autónomo demo</p>
-              <p className="text-xs text-white/60 mt-1">NIF: 12345678A</p>
+            <div className="px-6 py-4" style={{ borderTop: "1px solid rgba(74,222,128,0.1)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80" }} />
+                <p style={{ fontSize: 11, color: "#3d5c3d" }}>Autónomo demo</p>
+              </div>
+              <p style={{ fontSize: 12, color: "#7a9e7a" }}>NIF: 12345678A</p>
             </div>
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 overflow-y-auto bg-[#0f1214]">
+          <main className="flex-1 overflow-y-auto" style={{ background: "#0a0f0a" }}>
             {children}
           </main>
         </div>

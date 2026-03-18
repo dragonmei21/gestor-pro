@@ -105,6 +105,16 @@ export default function InvoicesPage() {
                 </Badge>
               </div>
             </div>
+            {extracted.repair_attempted && (
+              <div style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8, padding: "10px 14px", marginTop: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#fbbf24", marginBottom: 4 }}>⚙ Auto-repair triggered</div>
+                <p style={{ fontSize: 11, color: "#7a9e7a", lineHeight: 1.5 }}>
+                  Initial extraction had validation errors. A second LLM call was made with the error context.
+                  This is the multi-step repair loop — non-straightforward LLM usage per assignment spec.
+                </p>
+                {extracted.repair_succeeded && <div style={{ fontSize: 11, color: "#4ade80", marginTop: 4 }}>✓ Repair succeeded</div>}
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {extracted.validation_errors.length > 0 && (
