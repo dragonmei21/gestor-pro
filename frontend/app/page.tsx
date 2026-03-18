@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-
-const API = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000")
+import { api } from "@/lib/api"
 
 interface Summary {
   total_ingresos: number
@@ -30,8 +29,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/api/ledger/summary?quarter=2025-Q1`).then(r => r.json()),
-      fetch(`${API}/api/ledger`).then(r => r.json()),
+      api.getLedgerSummary("2025-Q1"),
+      api.getLedger(),
     ])
       .then(([s, l]) => {
         setSummary(s)
@@ -52,7 +51,7 @@ export default function Dashboard() {
     <div style={{ padding: "32px 40px" }}>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 24, fontWeight: 400, color: "#f0f0ee", margin: 0 }}>
+        <h1 style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 24, fontWeight: 400, color: "#f0f0ee", margin: 0 }}>
           Dashboard
         </h1>
         <p style={{ fontSize: 12, color: "#8b8b8b", marginTop: 4 }}>
@@ -77,7 +76,7 @@ export default function Dashboard() {
                 <div style={{ fontSize: 10, color: "#4a4a4a", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>
                   {k.label}
                 </div>
-                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 26, fontWeight: 400, color: k.color }}>
+                <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 26, fontWeight: 400, color: k.color }}>
                   {k.value}
                 </div>
               </div>

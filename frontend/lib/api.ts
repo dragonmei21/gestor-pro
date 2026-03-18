@@ -1,6 +1,8 @@
-const API_BASE = typeof window !== "undefined"
-  ? ""  // browser: relative URLs, Nginx proxies /api/ → backend
-  : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000")
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined"
+    ? "" // browser: relative URLs, Nginx proxies /api/ → backend
+    : "http://localhost:8000")
 
 export const api = {
   async parseInvoice(file: File) {
