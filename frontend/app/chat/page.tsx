@@ -54,26 +54,26 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-10 py-6 border-b border-white/10 bg-[#111111]">
+      <div className="px-12 py-6 border-b border-white/10 bg-[#0f1214]">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-semibold text-white/90">Asistente Financiero</h2>
-          <p className="text-sm text-white/50 mt-1">Con acceso en tiempo real a tu contabilidad · Powered by GPT‑4o + MCP</p>
+          <h2 className="text-2xl font-semibold text-white/90">Financial Assistant</h2>
+          <p className="text-sm text-white/50 mt-1">Real‑time access to your accounting · Powered by GPT‑4o + MCP</p>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-10 py-8 space-y-6 bg-[#0f0f0f]">
+      <div className="flex-1 overflow-y-auto px-12 py-8 space-y-6 bg-[#0f1214]">
         <div className="max-w-5xl mx-auto space-y-6">
         {messages.length === 0 && (
           <div className="text-center py-16">
             <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
-            <p className="text-white/60 font-medium mb-6">¿En qué te puedo ayudar?</p>
+            <p className="text-white/60 font-medium mb-6">How can I help?</p>
             <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
               {SUGGESTED.map((q) => (
                 <button
                   key={q}
                   onClick={() => send(q)}
-                  className="text-sm px-3 py-2 rounded-full border border-white/10 text-white/60 hover:border-emerald-400/60 hover:text-emerald-200 transition-colors text-left bg-white/5"
+                  className="text-sm px-3 py-2 rounded-full border border-white/10 text-white/60 hover:border-white/30 hover:text-white transition-colors text-left bg-white/5"
                 >
                   {q}
                 </button>
@@ -88,8 +88,8 @@ export default function ChatPage() {
               <div
                 className={`max-w-[70%] rounded-2xl px-5 py-4 text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "bg-emerald-500/90 text-white"
-                    : "bg-[#151515] border border-white/10 text-white/80"
+                    ? "bg-white/10 border border-white/15 text-white"
+                    : "bg-[#14191d] border border-white/10 text-white/80"
                 }`}
               >
                 {msg.role === "assistant" ? (
@@ -126,7 +126,7 @@ export default function ChatPage() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-[#151515] border border-white/10 rounded-2xl px-4 py-3">
+            <div className="bg-[#14191d] border border-white/10 rounded-2xl px-4 py-3">
               <div className="flex gap-1">
                 <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -140,21 +140,21 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="px-10 py-6 border-t border-white/10 bg-[#111111]">
+      <div className="px-12 py-6 border-t border-white/10 bg-[#0f1214]">
         <div className="max-w-5xl mx-auto flex gap-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
-            placeholder="Pregunta sobre tu contabilidad..."
-            className="flex-1 px-5 py-4 rounded-2xl border border-white/10 bg-[#0f0f0f] text-base text-white/80 placeholder:text-white/30 focus:outline-none focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/30"
+            placeholder="Ask about your accounting…"
+            className="flex-1 px-5 py-4 rounded-2xl border border-white/10 bg-[#0b0f14] text-base text-white/80 placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10"
             disabled={loading}
           />
           <Button
             onClick={() => send(input)}
             disabled={!input.trim() || loading}
-            className="bg-emerald-500 hover:bg-emerald-400 text-white px-6 rounded-2xl text-base"
+            className="bg-white text-black hover:bg-white/90 px-6 rounded-2xl text-base"
           >
             <Send className="w-4 h-4" />
           </Button>

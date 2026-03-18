@@ -35,52 +35,46 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className={`${inter.className} ${playfair.variable}`}>
         {isDemo && (
-          <div className="bg-amber-500/10 border-b border-amber-400/20 px-6 py-2 text-xs text-amber-200 flex items-center gap-2">
-            <span className="inline-flex h-2 w-2 rounded-full bg-amber-300" />
+          <div className="bg-[#0f1316] border-b border-white/10 px-6 py-2 text-xs text-white/60 flex items-center gap-2">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-300" />
             <span>Modo demo — usando datos de ejemplo. Sube tus propias facturas para análisis real.</span>
           </div>
         )}
         <div className="flex h-screen overflow-hidden">
           {/* Sidebar */}
-          <aside className="w-64 bg-gradient-to-b from-[#0b1220] via-[#0a1628] to-[#091824] text-white flex flex-col shrink-0 border-r border-white/5">
+          <aside className="w-64 bg-[#0e1417] text-white flex flex-col shrink-0 border-r border-white/10">
             <div className="px-6 pt-6 pb-5 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-emerald-400/15 ring-1 ring-emerald-300/30 grid place-items-center">
-                  <span className="text-emerald-200 text-sm font-semibold">GP</span>
+                <div className="h-9 w-9 rounded-lg bg-[#152027] border border-white/10 grid place-items-center">
+                  <span className="text-emerald-200 text-xs font-semibold">GP</span>
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold tracking-wide text-emerald-200">Pro Manager</h1>
-                  <p className="text-xs text-white/40">AI Financial Platform</p>
+                  <h1 className="text-base font-semibold tracking-wide text-white/90">Pro Manager</h1>
+                  <p className="text-[11px] text-white/40">AI Financial Platform</p>
                 </div>
               </div>
             </div>
-            <nav className="flex-1 px-3 py-5 space-y-1.5">
+            <nav className="flex-1 px-4 py-5 space-y-1.5">
               {NAV_ITEMS.map(({ href, icon: Icon, label }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
                 >
-                  <span className="h-8 w-8 rounded-lg bg-white/5 grid place-items-center border border-white/5">
-                    <Icon className="w-4 h-4 shrink-0 text-emerald-200/80" />
-                  </span>
+                  <Icon className="w-4 h-4 shrink-0 text-white/60" />
                   <span className="tracking-wide">{label}</span>
                 </Link>
               ))}
             </nav>
             <div className="px-6 py-4 border-t border-white/10">
-              <div className="rounded-xl bg-white/5 border border-white/10 p-3">
-                <p className="text-[11px] text-white/50 uppercase tracking-wider">Autónomo demo</p>
-                <p className="text-xs text-white/70 mt-1">NIF: 12345678A</p>
-              </div>
+              <p className="text-[11px] text-white/40">Autónomo demo</p>
+              <p className="text-xs text-white/60 mt-1">NIF: 12345678A</p>
             </div>
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 overflow-y-auto bg-[#0f0f0f]">
-            <div className="min-h-full bg-[radial-gradient(1200px_600px_at_20%_-10%,rgba(16,185,129,0.10),transparent_60%)]">
-              {children}
-            </div>
+          <main className="flex-1 overflow-y-auto bg-[#0f1214]">
+            {children}
           </main>
         </div>
       </body>
